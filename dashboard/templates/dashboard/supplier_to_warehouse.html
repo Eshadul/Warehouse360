@@ -1,0 +1,94 @@
+{% extends 'dashboard/dashboard.html' %} 
+{% load static %}
+
+{# 1. Override the title area with the page title #}
+{% block page_title %}
+    <h5 style="margin-left: 10px; margin-top: 15px; font-weight: bold; color: #5f5d5dff;">Order Fulfillment (Total: 0)</h5>
+{% endblock page_title %}
+
+{# 2. Override the main content area with the entire form #}
+{% block main_content %}
+    <div class="container-fluid py-4">
+        
+        <form method="POST">
+            {% csrf_token %}
+            <div class="row g-3">
+                
+                {# Row 1: Store and ASIN/UPC Code #}
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Store</label>
+                    <select class="form-select">
+                        <option selected>Store</option>
+                        {# Add dynamic options here #}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">ASIN/UPC Code</label>
+                    <select class="form-select">
+                        <option selected>ASIN/UPC Code</option>
+                        {# Add dynamic options here #}
+                    </select>
+                </div>
+
+                {# Row 2: Code Type and Team Code #}
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Code Type</label>
+                    <input type="text" class="form-control" placeholder="Code Type">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Team Code</label>
+                    <input type="text" class="form-control" placeholder="Team Code">
+                </div>
+                
+                {# Row 3: Product Name (Full Width) #}
+                <div class="col-12">
+                    <label class="form-label visually-hidden">Product Name</label>
+                    <input type="text" class="form-control" placeholder="Product Name">
+                </div>
+
+                {# Row 4: Supplier Order Id and Quantity #}
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Supplier Order Id</label>
+                    <input type="text" class="form-control" placeholder="Supplier Order Id">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Quantity</label>
+                    <input type="number" class="form-control" placeholder="Quantity">
+                </div>
+
+                {# Row 5: Amazon Order Id and Shipping Link (URL Input) #}
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Amazon Order Id</label>
+                    <input type="text" class="form-control" placeholder="Amazon Order Id">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Shipping Label Link</label>
+                    <input type="url" class="form-control" placeholder="Paste Shipping Label URL Here">
+                </div>
+
+                {# Row 6: Expected Delivery Date and Tracker Id #}
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Expected Delivery Date</label>
+                    <input type="date" class="form-control" placeholder="mm/dd/yyyy">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label visually-hidden">Tracker Id</label>
+                    <input type="text" class="form-control" placeholder="Tracker Id">
+                </div>
+
+                {# Row 7: Notes (Full Width) #}
+                <div class="col-12">
+                    <label class="form-label visually-hidden">Notes</label>
+                    <textarea class="form-control" placeholder="Notes" rows="3"></textarea>
+                </div>
+
+                {# Action Buttons #}
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i>SAVE</button>
+                    <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i>CLEAR</button>
+                </div>
+
+            </div>
+        </form>
+        </div>
+{% endblock main_content %}

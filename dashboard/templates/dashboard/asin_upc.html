@@ -1,0 +1,81 @@
+{% extends 'dashboard/dashboard.html' %} 
+{% load static %}
+
+{% block page_title %}
+    <!-- This container holds the toggle header and the button, using flex to justify content -->
+    <div class="d-flex justify-content-between align-items-center w-100">
+        
+        <!-- Toggle Header: Clicking this area collapses the form. -->
+        <div class="d-flex align-items-center" 
+             data-bs-toggle="collapse" 
+             data-bs-target="#asinUpcForm" 
+             aria-expanded="true" 
+             aria-controls="asinUpcForm" 
+             style="cursor: pointer;">
+            
+            <!-- Arrow Icon: Bi-chevron-up is the default open state icon -->
+            <i class="bi bi-chevron-up me-2 fs-5 text-secondary"></i>
+            <h5 style="margin-left: 10px; margin-top: 8px; font-weight: bold; color: #5f5d5dff;">ASIN/UPC (Total: 0)</h5>
+        </div>
+        
+    </div>
+    <!-- CREATE ASIN/UPC Button: Now Centered -->
+        <div class="flex-grow-1 text-center"> 
+             <button class="btn btn-sm btn-link text-warning text-decoration-none fw-bold" style="color: #ccc208ff;">CREATE  ASIN/UPC</button>
+        </div>
+    <!-- Horizontal line separator -->
+    <hr class="mt-0 mb-3"> 
+{% endblock page_title %}
+
+{% block main_content %}
+    <div class="container-fluid py-4">
+        
+        <!-- Collapsible Form Section: Starts visible with 'collapse show'. ID matches header target. -->
+        <div id="asinUpcForm" class="collapse show"> 
+            
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row g-3">
+                    
+                    {# Row 1: Code (Full Width) #}
+                    <div class="col-12">
+                        <label class="form-label visually-hidden">Code</label>
+                        <input type="text" class="form-control form-control-lg" placeholder="Code">
+                    </div>
+
+                    {# Row 2: Product Name and Minimum Price #}
+                    <div class="col-md-6">
+                        <label class="form-label visually-hidden">Product Name</label>
+                        <input type="text" class="form-control" placeholder="Product Name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label visually-hidden">Minimum Price</label>
+                        <input type="text" class="form-control" placeholder="Minimum Price">
+                    </div>
+
+                    {# Row 3: Code Type (Dropdown) and Product Image Link #}
+                    <div class="col-md-6">
+                        <label class="form-label visually-hidden">Code Type</label>
+                        <select class="form-select">
+                            <option selected>Code Type</option>
+                            <option value="asin">ASIN</option>
+                            <option value="upc">UPC</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label visually-hidden">Product Image Link</label>
+                        <input type="url" class="form-control" placeholder="Product Image Link">
+                    </div>
+
+                    {# Action Buttons #}
+                    <div class="col-12 text-end mt-5">
+                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
+                        <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</button>
+                    </div>
+
+                </div>
+            </form>
+            
+        </div>
+    </div>
+{% endblock main_content %}
