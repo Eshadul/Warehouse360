@@ -1,0 +1,15 @@
+{% extends 'dashboard/dashboard.html' %} 
+{% load static %}
+
+{# 1. Override the title area #}
+{% block page_title %}
+    <h4>Delivered To Warehouse</h4>
+{% endblock page_title %}
+
+{# 2. Override the main content area (replace the cards with simple text) #}
+{% block main_content %}
+    <div style="padding-top: 20px;">
+        <p>This is where you will manage the inventory delivered to warehouse related things.
+        </p>
+    </div>
+{% endblock main_content %}

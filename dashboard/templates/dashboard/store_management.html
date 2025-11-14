@@ -1,70 +1,67 @@
 {% extends 'dashboard/dashboard.html' %} 
 {% load static %}
+{% load widget_tweaks %}
 
 {% block page_title %}
     <!-- Header with Collapse Toggle -->
     <div class="d-flex justify-content-between align-items-center w-100">
         
-        <!-- Toggle Header: Clicking this area collapses the form. -->
+        <!-- Toggle Header -->
         <div class="d-flex align-items-center" 
              data-bs-toggle="collapse" 
-             data-bs-target="#storeForm" 
+             data-bs-target="#storeFormCollapse" 
              aria-expanded="true" 
-             aria-controls="storeForm" 
+             aria-controls="storeFormCollapse" 
              style="cursor: pointer;">
             
             <i class="bi bi-chevron-up me-2 fs-5 text-secondary"></i>
-            <h5 style="margin-left: 10px; margin-top: 8px; font-weight: bold; color: #5f5d5dff;">{{ page_title }}</h5>
+            <h4 style="margin-left: 10px; font-weight: bold; color: #333;">{{ page_title }}</h4>
         </div>
         
-    </div>
-    <div class="flex-grow-1 text-center"> 
-             <button class="btn btn-sm btn-warning">CREATE NEW STORE</button>
+        <!-- CREATE NEW STORE Button (This just reloads the create page) -->
+        <div class="flex-grow-1 text-center"> 
+             <a href="{% url 'store_management' %}" class="btn btn-sm btn-warning text-decoration-none fw-bold">CREATE NEW STORE</a>
         </div>
-    <!-- Horizontal line separator -->
+    </div>
     <hr class="mt-0 mb-3"> 
 {% endblock page_title %}
 
 {% block main_content %}
     <div class="container-fluid py-4">
         
-        <!-- Collapsible Form Section: Starts visible with 'collapse show'. ID matches header target. -->
-        <div id="storeForm" class="collapse show"> 
+        <!-- Collapsible Form Section -->
+        <div id="storeFormCollapse" class="collapse show"> 
             
             <form method="POST">
                 {% csrf_token %}
                 <div class="row g-3">
                     
-                    {# Row 1: Warehouse Type and Store Name #}
+                    {# Row 1: Warehouse Name and Store Name #}
                     <div class="col-md-6">
-                        <label class="form-label visually-hidden">Warehouse Type</label>
-                        <select class="form-select">
-                            <option selected>Warehouse Type</option>
-                            <option selected>Warehouse Type</option>
-                            {# Add dynamic options here #}
-                        </select>
+                        <label class="form-label">Warehouse Name</label>
+                        {% render_field form.warehouse class="form-select" %}
+                        {% if form.warehouse.errors %}
+                            <div class="text-danger small">{{ form.warehouse.errors|first }}</div>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label visually-hidden">Store Name</label>
-                        <input type="text" class="form-control" placeholder="Store Name">
+                        <label class="form-label">Store Name</label>
+                        {% render_field form.store_name class="form-control" placeholder="e.g., Amazon US" %}
                     </div>
 
-                    {# Row 2: Store Type #}
+                    {# Row 2: Store Type and Status #}
                     <div class="col-md-6">
-                        <label class="form-label visually-hidden">Store Type</label>
-                        <select class="form-select">
-                            <option selected>Store Type</option>
-                            <option value="amazon">Amazon</option>
-                            <option value="shopify">Walmart</option>
-                        </select>
+                        <label class="form-label">Store Type</label>
+                        {% render_field form.store_type class="form-control" placeholder="e.g., Amazon" %}
                     </div>
                     <div class="col-md-6">
-                        {# Empty space for alignment in this row #}
+                        <label class="form-label">Status</label>
+                        {% render_field form.is_active class="form-select" %}
                     </div>
                     
                     {# Action Buttons #}
-                    <div class="col-12 text-end mt-5">
-                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> CREATE</button>
+                    <div class="col-12 text-end mt-4">
+                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
                         <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</button>
                     </div>
 
@@ -73,8 +70,65 @@
             
         </div>
         
-        <!-- Placeholder for the Store List/Table (Below the Form) -->
-        <h5 class="mt-5 text-secondary">List of existing stores will be displayed here...</h5>
-
+        <!-- Store List Table (as requested) -->
+        <h5 class="mt-5 text-secondary">Existing Stores</h5>
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                
+                <!-- === MAKING SEARCH BAR FUNCTIONAL === -->
+                <form method="GET" action="{% url 'store_management' %}" class="d-flex justify-content-end mb-3">
+                    <div class="input-group" style="max-width: 300px;">
+                        <input type="text" class="form-control" placeholder="Search by store or warehouse..." name="q" value="{{ query }}">
+                        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                    </div>
+                </form>
+                <!-- === END SEARCH BAR === -->
+                
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">SL</th>
+                            <th scope="col">Warehouse Name</th>
+                            <th scope="col">Store Name</th>
+                            <th scope="col">Store Type</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Created Time</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for store in stores %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ store.warehouse.name|default:"N/A" }}</td>
+                            <td>{{ store.store_name }}</td>
+                            <td>{{ store.store_type }}</td>
+                            <td>
+                                {% if store.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ store.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <!-- 
+                                  PERMISSION FIX: 
+                                  Only show "Edit" if user is Super Admin OR Warehouse Admin.
+                                -->
+                                {% if user.primary_role == 'super_admin' or user.primary_role == 'warehouse_admin' %}
+                                    <a href="{% url 'store_update' store.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No stores found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 {% endblock main_content %}

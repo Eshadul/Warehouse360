@@ -16,13 +16,12 @@
         body {
             background-color: #f8f9fa;
             font-family: "Poppins", sans-serif;
-            /* Add padding to the top equal to the height of the fixed top-bar */
             padding-top: 60px; 
         }
 
-        /* Sidebar - ADJUSTED FOR LARGER LOGO */
+        /* Sidebar */
         .sidebar {
-            width: 290px; /* Increased width to fit logo/menu */
+            width: 300px; 
             height: 100vh;
             background-color: #fff;
             border-right: 1px solid #ddd;
@@ -30,13 +29,7 @@
             top: 0;
             left: 0;
             padding-top: 10px;
-            z-index: 1030; /* Ensure sidebar is above content */
-        }
-        .mb-4{
-            width:150px;
-            height:120px;
-            margin-left:   25px;
-            margin-bottom: 0px;
+            z-index: 1030;
         }
 
         .sidebar .nav-link {
@@ -49,15 +42,15 @@
             background-color: #ffb300;
             color: #fff;
             border-radius: 50px;
-            padding: 10px 40px 10px 20px; /* Custom padding for wider yellow selection */
-            margin-right: 10px; /* Space on the right for the round effect */
+            padding: 10px 40px 10px 20px;
+            margin-right: 10px;
         }
 
         /* Fixed Top Header */
         .top-header {
             position: fixed;
             top: 0;
-            left: 300px; /* Starts after the fixed sidebar */
+            left: 300px; 
             right: 0;
             height: 60px;
             background-color: #fff;
@@ -70,10 +63,9 @@
 
         /* Main Content */
         .content {
-            /* Adjusted margin-left to match the sidebar width (300px) */
             margin-left: 300px; 
             padding: 20px;
-            padding-top: 0; /* Remove top padding since body handles it */
+            padding-top: 0;
         }
 
         .card-box {
@@ -90,17 +82,17 @@
             transform: translateY(-5px);
             box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
         }
-        /* Custom style for the user profile area in the top header */
-.user-card-header {
-    border-radius: 15px; /* Matches the card-box radius */
-    padding: 5px 30px;  /* Adds padding around the button content */
-    background-color: #f0f0f0; /* Light gray background to give it body */
-    transition: all 0.3s ease;
-}
 
-.user-card-header:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
-}
+        .user-card-header {
+            border-radius: 15px;
+            padding: 5px 30px; 
+            background-color: #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .user-card-header:hover {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
 
         .footer {
             text-align: center;
@@ -115,63 +107,94 @@
     <!-- Sidebar -->
     <div class="sidebar d-flex flex-column align-items-start p-3">
         <div class="d-flex align-items-center mb-4">
-            <!-- Increased image size to 200px as requested earlier -->
-            <img src="{% static 'images/logo.png' %}" alt="Logo" width="150px" class="me-2">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" width="120px" class="me-2">
         </div>
 
         <a href="/" class="nav-link active"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
         <hr>
+        
+        <!-- === PERMISSION CHECKS UPDATED === -->
+
         <small class="text-secondary fw-bold">PRODUCT AND INVENTORY</small>
-        <a href="{% url 'asin_upc' %}" class="nav-link"><i class="bi bi-upc-scan me-2"></i> ASIN/UPC</a>
-        <a href="{% url 'supplier_to_warehouse' %}" class="nav-link"><i class="bi bi-clipboard-check me-2"></i> Order Fulfillment</a>
+        
+        {# --- ASIN/UPC (All roles *except* Warehouse Manager) --- #}
+        {% if user.primary_role != 'warehouse_manager' %}
+            <a href="{% url 'asin_upc' %}" class="nav-link"><i class="bi bi-upc-scan me-2"></i> ASIN/UPC</a>
+        {% endif %}
+
+        {# --- ORDER FULFILLMENT (All roles) --- #}
+        <a href="{% url 'order_fulfillment' %}" class="nav-link"><i class="bi bi-clipboard-check me-2"></i> Order Fulfillment</a>
+
         <hr>
         <small class="text-secondary fw-bold">STORE MANAGEMENT</small>
-        <a href="{% url 'store_management' %}" class="nav-link"><i class="bi bi-shop me-2"></i> Store</a>
+        
+        {# --- STORE (All roles *except* Warehouse Manager) --- #}
+        {% if user.primary_role != 'warehouse_manager' %}
+            <a href="{% url 'store_management' %}" class="nav-link"><i class="bi bi-shop me-2"></i> Store</a>
+        {% endif %}
+
         <hr>
-        <small class="text-secondary fw-bold">USER</small>
-        <a href="{% url 'create_user' %}" class="nav-link"><i class="bi bi-person-plus me-2"></i> Create User</a>
-        <hr>
-        <small class="text-secondary fw-bold">WAREHOUSES</small>
-        <a href="{% url 'create_warehouse' %}" class="nav-link"><i class="bi bi-house-door me-2"></i> Create Warehouse</a>
+        
+        {# --- USER (Super Admin & Warehouse Admin ONLY) --- #}
+        {% if user.primary_role == 'super_admin' or user.primary_role == 'warehouse_admin' %}
+            <small class="text-secondary fw-bold">USER</small>
+            <a href="{% url 'create_user' %}" class="nav-link"><i class="bi bi-person-plus me-2"></i> Create User</a>
+            <hr>
+        {% endif %}
+        
+        {# --- WAREHOUSES (Super Admin ONLY) --- #}
+        {% if user.primary_role == 'super_admin' %}
+            <small class="text-secondary fw-bold">WAREHOUSES</small>
+            <a href="{% url 'create_warehouse' %}" class="nav-link"><i class="bi bi-building-add me-2"></i> Create Warehouse</a>
+        {% endif %}
+        
     </div>
 
-    <!-- FIXED TOP HEADER BAR (NEWLY ADDED) -->
+    <!-- FIXED TOP HEADER BAR -->
     <div class="top-header">
-        <h7 class="flex-grow-1" style="margin-left: 385px; color: #ccc208ff;">Current Warehouse : <strong>Jake</strong></h7> <!-- Aligned to the left -->
+        <h7 class="flex-grow-1" style="margin-left: 0; color: #333; font-weight: 500;">Current Warehouse : <strong>Jake</strong></h7> 
 
-        <!-- User Profile Dropdown (NOW STYLED AS A CARD) -->
-<div class="d-flex align-items-center user-card-header"> 
-    
-    <div class="dropdown">
-        <button class="btn bg-transparent dropdown-toggle p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-person-circle me-2 fs-5"></i>
-            {{ user.username }} <br>
-            <small class="text-secondary">{{ user.get_role_display }}</small>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-        </ul>
-    </div>
-</div>
+        <div class="d-flex align-items-center user-card-header"> 
+            <div class="dropdown">
+                <button class="btn bg-transparent dropdown-toggle p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle me-2 fs-5"></i>
+                    {{ user.username }} <br>
+                    <small class="text-secondary">{{ user.get_primary_role_display }}</small>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
     <!-- END TOP HEADER BAR -->
 
 
     <!-- Main Content -->
     <div class="content">
-        <!-- This area now only handles the dynamic page title/button and main content -->
-        
-        <!-- Page Title Block (ASIN/UPC (Total: 0) goes here) -->
         {% block page_title %}
             <h4>Dashboard</h4>
         {% endblock page_title %}
         
-       <!-- Main Content Block (Cards/Forms go here) -->
         {% block main_content %}
-            <!-- Dashboard Cards: Now only showing the two custom cards, aligned left -->
             <div class="row g-3">
                 
-                <!-- 1. Ready to Shipment (Now in the first column slot) -->
+                <div class="col-md-3">
+                    <a href="{% url 'delivered_to_warehouse' %}" class="card-box bg-success bg-opacity-25 d-block">
+                        <i class="bi bi-box-arrow-in-down fs-3 text-success"></i>
+                        <h6 class="mt-2">Delivered to Warehouse</h6>
+                        <h4>10</h4>
+                    </a>
+                </div>
+
+                <div class="col-md-3">
+                    <a href="{% url 'out_of_stock' %}" class="card-box bg-danger bg-opacity-25 d-block">
+                        <i class="bi bi-x-octagon fs-3 text-danger"></i>
+                        <h6 class="mt-2">Out of Stock</h6>
+                        <h4>0</h4>
+                    </a>
+                </div>
+                
                 <div class="col-md-3">
                     <a href="{% url 'ready_to_ship' %}" class="card-box bg-info bg-opacity-25 d-block">
                         <i class="bi bi-truck fs-3 text-info"></i>
@@ -180,7 +203,6 @@
                     </a>
                 </div>
 
-                <!-- 2. Total Shipment (Now in the second column slot) -->
                 <div class="col-md-3">
                     <a href="{% url 'total_shipment' %}" class="card-box bg-primary bg-opacity-25 d-block">
                         <i class="bi bi-truck fs-3 text-primary"></i>
@@ -188,8 +210,6 @@
                         <h4>22</h4>
                     </a>
                 </div>
-                
-                {# The remaining col-md-3 slots are implicitly empty, aligning the two cards left. #}
             </div>
         {% endblock main_content %}
 

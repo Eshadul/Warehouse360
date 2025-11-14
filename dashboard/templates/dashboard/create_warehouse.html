@@ -1,36 +1,36 @@
 {% extends 'dashboard/dashboard.html' %} 
 {% load static %}
+{% load widget_tweaks %}
 
 {% block page_title %}
     <!-- Header with Collapse Toggle -->
     <div class="d-flex justify-content-between align-items-center w-100">
         
-        <!-- Toggle Header: Clicking this area collapses the form. -->
+        <!-- Toggle Header -->
         <div class="d-flex align-items-center" 
              data-bs-toggle="collapse" 
-             data-bs-target="#createUserForm" 
+             data-bs-target="#warehouseFormCollapse" 
              aria-expanded="true" 
-             aria-controls="createUserForm" 
+             aria-controls="warehouseFormCollapse" 
              style="cursor: pointer;">
             
             <i class="bi bi-chevron-up me-2 fs-5 text-secondary"></i>
-            <h5 style="margin-left: 10px; margin-top: 8px; font-weight: bold; color: #5f5d5dff;">{{ page_title }}</h5>
+            <h4 style="margin-left: 10px; font-weight: bold; color: #333;">{{ page_title }}</h4>
         </div>
-               
-    </div>
-    <!-- CREATE USER Button -->
+        
+        <!-- CREATE NEW WAREHOUSE Button (This just reloads the create page) -->
         <div class="flex-grow-1 text-center"> 
-             <button class="btn btn-sm btn-warning">CREATE NEW WAREHOUSE</button>
+             <a href="{% url 'create_warehouse' %}" class="btn btn-sm btn-warning text-decoration-none fw-bold">CREATE NEW WAREHOUSE</a>
         </div>
-    <!-- Horizontal line separator -->
+    </div>
     <hr class="mt-0 mb-3"> 
 {% endblock page_title %}
 
 {% block main_content %}
     <div class="container-fluid py-4">
         
-        <!-- Collapsible Form Section: Starts visible with 'collapse show'. ID matches header target. -->
-        <div id="createUserForm" class="collapse show"> 
+        <!-- Collapsible Form Section -->
+        <div id="warehouseFormCollapse" class="collapse show"> 
             
             <form method="POST">
                 {% csrf_token %}
@@ -38,17 +38,17 @@
                     
                     {# Row 1: Warehouse Name and Location #}
                     <div class="col-md-6">
-                        <label class="form-label visually-hidden">Warehouse Name</label>
-                        <input type="text" class="form-control form-control-lg" placeholder="Warehouse Name">
+                        <label class="form-label">Warehouse Name</label>
+                        {% render_field form.name class="form-control" placeholder="e.g., Dhaka Warehouse" %}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label visually-hidden">Location</label>
-                        <input type="text" class="form-control form-control-lg" placeholder="Location">
+                        <label class="form-label">Location</label>
+                        {% render_field form.location class="form-control" placeholder="e.g., Dhaka" %}
                     </div>
                     
                     {# Action Buttons #}
-                    <div class="col-12 text-end mt-5">
-                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> CREATE</button>
+                    <div class="col-12 text-end mt-4">
+                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
                         <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</button>
                     </div>
 
@@ -57,9 +57,55 @@
             
         </div>
         
-        <!-- Placeholder for the Warehouses List/Table (Below the Form) -->
-        <h5 class="mt-5 text-secondary">Warehouse Name List will be displayed here...</h5>
-        <!-- You would typically replace the <h5> above with your Django loop to display a table of existing users -->
+        <!-- Warehouse List Table -->
+        <h5 class="mt-5 text-secondary">Existing Warehouses</h5>
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                
+                <!-- === ADDED SEARCH BAR === -->
+                <form method="GET" action="{% url 'create_warehouse' %}" class="d-flex justify-content-end mb-3">
+                    <div class="input-group" style="max-width: 300px;">
+                        <input type="text" class="form-control" placeholder="Search by name or location..." name="q" value="{{ query }}">
+                        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                    </div>
+                </form>
+                <!-- === END SEARCH BAR === -->
 
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">SL</th>
+                            <th scope="col">Warehouse Name</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Created Time</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for warehouse in warehouses %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ warehouse.name }}</td>
+                            <td>{{ warehouse.location }}</td>
+                            <td>{{ warehouse.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <!-- 
+                                  PERMISSION FIX: 
+                                  Only show "Edit" if user is Super Admin.
+                                -->
+                                {% if user.primary_role == 'super_admin' %}
+                                    <a href="{% url 'warehouse_update' warehouse.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No warehouses found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 {% endblock main_content %}
