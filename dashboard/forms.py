@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Warehouse, Store, User, Role
+# Import all the models we need for the forms
+from .models import (
+    Warehouse, Store, User, Role, UserWarehouseRole, Product, OrderFulfillment
+) 
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
@@ -16,6 +19,14 @@ class WarehouseForm(forms.ModelForm):
 
 # --- Store Form ---
 class StoreForm(forms.ModelForm):
+    STATUS_CHOICES = [
+        (True, 'Active'),
+        (False, 'Inactive'),
+    ]
+    is_active = forms.ChoiceField(
+        choices=STATUS_CHOICES, 
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
     class Meta:
         model = Store
         fields = ['warehouse', 'store_name', 'store_type', 'is_active']
@@ -23,13 +34,10 @@ class StoreForm(forms.ModelForm):
             'warehouse': forms.Select(attrs={'class': 'form-select'}),
             'store_name': forms.TextInput(attrs={'class': 'form-control'}),
             'store_type': forms.TextInput(attrs={'class': 'form-control'}),
-            'is_active': forms.Select(attrs={'class': 'form-select'}),
         }
 
 # --- User Create Form ---
-# This form INCLUDES password validation and is used for CREATING new users.
 class UserCreateForm(UserCreationForm):
-    # We add our custom fields here
     full_name = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
     phone_number = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -39,28 +47,20 @@ class UserCreateForm(UserCreationForm):
     )
 
     class Meta(UserCreationForm.Meta):
-        model = User # Tell the form which model to use
-        # Define ALL fields (except password/password2, which UserCreationForm adds)
+        model = User 
         fields = ('username', 'full_name', 'email', 'phone_number', 'primary_role') 
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None) # Get the logged-in user
+        self.user = kwargs.pop('user', None) 
         super().__init__(*args, **kwargs)
         
-        # === THIS IS THE FIX ===
-        # The correct field names in UserCreationForm are 'password1' and 'password2'
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
-        
-        # Optional: Add nicer labels
         self.fields['password1'].label = "Password"
         self.fields['password2'].label = "Confirm Password"
-        # === END FIX ===
 
-        # Super Admins can create any role
         if self.user and self.user.primary_role == 'super_admin':
              self.fields['primary_role'].choices = User.ROLE_CHOICES
-        # Warehouse Admins can only create managers
         elif self.user and self.user.primary_role == 'warehouse_admin':
             self.fields['primary_role'].choices = [
                 ('store_manager', 'Store Manager'),
@@ -68,9 +68,7 @@ class UserCreateForm(UserCreationForm):
             ]
 
 # --- User Update Form ---
-# This form is for EDITING existing users. Passwords are OPTIONAL.
 class UserUpdateForm(forms.ModelForm):
-    # Add optional password fields (these names are correct: 'password' and 'password2')
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}), 
         required=False, 
@@ -95,13 +93,11 @@ class UserUpdateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None) # Get the logged-in user
+        self.user = kwargs.pop('user', None) 
         super().__init__(*args, **kwargs)
 
-        # Super Admins can edit any role
         if self.user and self.user.primary_role == 'super_admin':
              self.fields['primary_role'].choices = User.ROLE_CHOICES
-        # Warehouse Admins can only edit/assign manager roles
         elif self.user and self.user.primary_role == 'warehouse_admin':
             self.fields['primary_role'].choices = [
                 ('store_manager', 'Store Manager'),
@@ -109,7 +105,6 @@ class UserUpdateForm(forms.ModelForm):
             ]
 
     def clean(self):
-        # Check if passwords match (only if they were provided)
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         password2 = cleaned_data.get("password2")
@@ -120,14 +115,85 @@ class UserUpdateForm(forms.ModelForm):
 
     @transaction.atomic
     def save(self, commit=True):
-        # Save the user instance
         user = super().save(commit=False)
-        
-        # Check if a new password was entered
         password = self.cleaned_data.get("password")
         if password:
-            user.set_password(password) # Hash and set the new password
+            user.set_password(password) 
 
         if commit:
             user.save()
         return user
+
+# --- User Assignment Form ---
+class UserAssignmentForm(forms.ModelForm):
+    warehouse = forms.ModelChoiceField(
+        queryset=Warehouse.objects.all(), 
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.all(), 
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None) 
+        super().__init__(*args, **kwargs)
+
+        if user and (user.primary_role == 'warehouse_admin' or (user.active_assignment and user.active_assignment.role.name == 'warehouse_admin')):
+            self.fields['role'].queryset = Role.objects.filter(
+                name__in=['store_manager', 'warehouse_manager']
+            )
+        elif user and (user.primary_role == 'super_admin' or (user.active_assignment and user.active_assignment.role.name == 'super_admin')):
+            self.fields['role'].queryset = Role.objects.all()
+        else:
+            self.fields['role'].queryset = Role.objects.none()
+
+    class Meta:
+        model = UserWarehouseRole
+        fields = ['warehouse', 'role']
+
+
+# --- Product (ASIN/UPC) Form ---
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ['code', 'product_name', 'code_type', 'product_image_link', 'minimum_price']
+        widgets = {
+            'code': forms.TextInput(attrs={'class': 'form-control form-control-lg', 'placeholder': 'Code'}),
+            'product_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Product Name'}),
+            'code_type': forms.Select(attrs={'class': 'form-select'}),
+            'product_image_link': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'Product Image Link'}),
+            'minimum_price': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Minimum Price'}),
+        }
+
+# --- NEW: Order Fulfillment Form ---
+class OrderFulfillmentForm(forms.ModelForm):
+    # We will dynamically filter these querysets in the view
+    store = forms.ModelChoiceField(
+        queryset=Store.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    class Meta:
+        model = OrderFulfillment
+        # All fields except the status and tracking fields
+        fields = [
+            'store', 'product', 'code_type', 'team_code', 'supplier_order_id',
+            'quantity', 'amazon_order_id', 'shipping_label_url',
+            'expected_delivery_date', 'tracker_id', 'notes'
+        ]
+        widgets = {
+            'code_type': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Code Type'}),
+            'team_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Team Code'}),
+            'supplier_order_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Supplier Order Id'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Quantity'}),
+            'amazon_order_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Amazon Order Id'}),
+            'shipping_label_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'Paste Shipping Label URL Here'}),
+            'expected_delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'tracker_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tracker Id'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Notes', 'rows': 3}),
+        }

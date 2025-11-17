@@ -56,6 +56,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Status</label>
+                        <!-- This will now render as a dropdown thanks to the forms.py fix -->
                         {% render_field form.is_active class="form-select" %}
                     </div>
                     
@@ -75,10 +76,12 @@
         <div class="card shadow-sm mt-3">
             <div class="card-body">
                 
-                <!-- === MAKING SEARCH BAR FUNCTIONAL === -->
+                <!-- === UPDATED SEARCH BAR PLACEHOLDER === -->
                 <form method="GET" action="{% url 'store_management' %}" class="d-flex justify-content-end mb-3">
                     <div class="input-group" style="max-width: 300px;">
-                        <input type="text" class="form-control" placeholder="Search by store or warehouse..." name="q" value="{{ query }}">
+                        <input type="text" class="form-control" 
+                               placeholder="Search name, type, status, or date..." 
+                               name="q" value="{{ query }}">
                         <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
                     </div>
                 </form>
@@ -114,9 +117,9 @@
                             <td>
                                 <!-- 
                                   PERMISSION FIX: 
-                                  Only show "Edit" if user is Super Admin OR Warehouse Admin.
+                                  We now check the *active session role*
                                 -->
-                                {% if user.primary_role == 'super_admin' or user.primary_role == 'warehouse_admin' %}
+                                {% if request.active_assignment.role.name == 'super_admin' or request.active_assignment.role.name == 'warehouse_admin' or user.primary_role == 'super_admin' %}
                                     <a href="{% url 'store_update' store.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
                                 {% endif %}
                             </td>

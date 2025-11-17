@@ -32,6 +32,7 @@
         <!-- Collapsible Form Section -->
         <div id="userFormCollapse" class="collapse show"> 
             
+            <!-- === MAIN USER FORM (CREATE/EDIT) === -->
             <form method="POST">
                 {% csrf_token %}
                 <div class="row g-3">
@@ -100,42 +101,51 @@
                         {% render_field form.is_active class="form-select" %}
                     </div>
                     {% endif %}
-
-                    <!-- === WAREHOUSE & ROLE ASSIGNMENT (Your M2M Requirement) === -->
-                    <hr class="mt-4">
-                    <h5>Assign Warehouse(s) and Role(s)</h5>
-                    <p class="text-muted small">Select one or more warehouses and one or more roles. The user will be assigned all selected roles for all selected warehouses.</p>
                     
-                    <div class="col-md-6">
-                        <label class="form-label">Warehouses to Assign</label>
-                        <select name="warehouses" class="form-select" multiple size="5">
-                            {% for warehouse in all_warehouses %}
-                                <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">Hold Ctrl (or Cmd on Mac) to select multiple.</div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Roles to Assign</label>
-                        <select name="roles" class="form-select" multiple size="5">
-                            {% for role in all_roles %}
-                                <option value="{{ role.id }}">{{ role.get_name_display }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <!-- === END M2M ASSIGNMENT === -->
-                    
-                    {# Action Buttons #}
+                    {# Action Buttons for Main Form #}
                     <div class="col-12 text-end mt-4">
-                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE USER</button>
+                        <!-- This button name 'save_user' is checked in views.py -->
+                        <button type="submit" name="save_user" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE USER DETAILS</button>
                         <a href="{% url 'create_user' %}" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CANCEL</a>
                     </div>
 
                 </div>
             </form>
             
+        </div> <!-- End of Collapsible Form Section -->
+
+
+        <!-- === NEW: ADD ASSIGNMENT FORM (Only shows on EDIT page) === -->
+        {% if user_to_edit %} <!-- user_to_edit is passed from the view if pk exists -->
+        <div class="mt-5">
+            <hr>
+            <h5>Add New Assignment</h5>
+            <p class="text-muted small">Assign this user a new role at a specific warehouse.</p>
+            
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Warehouse</label>
+                        {% render_field assignment_form.warehouse class="form-select" %}
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Role</label>
+                        {% render_field assignment_form.role class="form-select" %}
+                    </div>
+                    <div class="col-md-2">
+                        <!-- This button name 'add_assignment' is checked in views.py -->
+                        <button type="submit" name="add_assignment" class="btn btn-success w-100">
+                            <i class="bi bi-plus-lg"></i> Add
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-        
+        {% endif %}
+        <!-- === END NEW ASSIGNMENT FORM === -->
+
+
         <!-- User List Table -->
         <h5 class="mt-5 text-secondary">Existing Users</h5>
         <div class="card shadow-sm mt-3">
@@ -175,9 +185,19 @@
                             <td>
                                 <!-- Loop through the user's M2M assignments -->
                                 {% for assignment in user_obj.userwarehouserole_set.all %}
-                                    <span class="badge bg-secondary mb-1">
-                                        {{ assignment.warehouse.name }}: {{ assignment.role.get_name_display }}
-                                    </span><br>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-secondary">
+                                            {{ assignment.warehouse.name }}: {{ assignment.role.get_name_display }}
+                                        </span>
+                                        <!-- === NEW: REMOVE BUTTON === -->
+                                        <!-- This link points to the new delete view -->
+                                        <a href="{% url 'delete_user_assignment' assignment.pk %}" 
+                                           class="btn btn-sm btn-outline-danger p-0 px-1 ms-2" 
+                                           style="font-size: 0.7rem;"
+                                           onclick="return confirm('Are you sure you want to remove this assignment?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
                                 {% empty %}
                                     <span class="text-muted small">No assignments</span>
                                 {% endfor %}
@@ -188,7 +208,6 @@
                             <td>
                                 <!-- Permission Check for Edit Button -->
                                 {% if user.primary_role == 'super_admin' or user.primary_role == 'warehouse_admin' %}
-                                    <!-- Do not allow editing self (Super Admin) or other Super Admins -->
                                     {% if user_obj.primary_role != 'super_admin' %}
                                         <a href="{% url 'user_update' user_obj.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
                                     {% endif %}

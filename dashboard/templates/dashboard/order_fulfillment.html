@@ -1,96 +1,224 @@
 {% extends 'dashboard/dashboard.html' %} 
 {% load static %}
+{% load widget_tweaks %}
 
-{# 1. Override the title area with the page title #}
 {% block page_title %}
-    <h5 style="margin-left: 10px; margin-top: 15px; font-weight: bold; color: #5f5d5dff;">Order Fulfillment (Total: 0)</h5>
+    <!-- Header with Collapse Toggle -->
+    <div class="d-flex justify-content-between align-items-center w-100">
+        
+        <!-- Toggle Header -->
+        <div class="d-flex align-items-center" 
+             data-bs-toggle="collapse" 
+             data-bs-target="#orderFormCollapse" 
+             aria-expanded="true" 
+             aria-controls="orderFormCollapse" 
+             style="cursor: pointer;">
+            
+            <i class="bi bi-chevron-up me-2 fs-5 text-secondary"></i>
+            <h4 style="margin-left: 10px; font-weight: bold; color: #333;">{{ page_title }}</h4>
+        </div>
+        
+        <!-- CREATE NEW ORDER Button (Reloads create page) -->
+        <div class="flex-grow-1 text-center"> 
+             <a href="{% url 'order_fulfillment' %}" class="btn btn-sm btn-warning text-decoration-none fw-bold">CREATE NEW ORDER</a>
+        </div>
+    </div>
+    <hr class="mt-0 mb-3"> 
 {% endblock page_title %}
 
-{# 2. Override the main content area with the entire form #}
 {% block main_content %}
     <div class="container-fluid py-4">
         
-        <form method="POST">
-            {% csrf_token %}
-            <div class="row g-3">
+        <!-- 
+          PERMISSION CHECK 1:
+          Only show the Create/Edit Form to users who have permission
+          (Super Admin, Warehouse Admin, Store Manager)
+        -->
+        {% if can_create_or_edit %}
+            <div id="orderFormCollapse" class="collapse show"> 
                 
-                {# Row 1: Store and ASIN/UPC Code #}
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Store</label>
-                    <select class="form-select">
-                        <option selected>Store</option>
-                        {# Add dynamic options here #}
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">ASIN/UPC Code</label>
-                    <select class="form-select">
-                        <option selected>ASIN/UPC Code</option>
-                        {# Add dynamic options here #}
-                    </select>
-                </div>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        
+                        {# Row 1: Store and ASIN/UPC Code #}
+                        <div class="col-md-6">
+                            <label class="form-label">Store</label>
+                            {% render_field form.store class="form-select" %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ASIN/UPC Code (Product)</label>
+                            {% render_field form.product class="form-select" %}
+                        </div>
 
-                {# Row 2: Code Type and Team Code #}
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Code Type</label>
-                    <input type="text" class="form-control" placeholder="Code Type">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Team Code</label>
-                    <input type="text" class="form-control" placeholder="Team Code">
-                </div>
+                        {# Row 2: Code Type and Team Code #}
+                        <div class="col-md-6">
+                            <label class="form-label">Code Type</label>
+                            {% render_field form.code_type class="form-control" %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Team Code</label>
+                            {% render_field form.team_code class="form-control" %}
+                        </div>
+
+                        {# Row 3: Supplier Order Id and Quantity #}
+                        <div class="col-md-6">
+                            <label class="form-label">Supplier Order Id</label>
+                            {% render_field form.supplier_order_id class="form-control" %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Quantity</label>
+                            {% render_field form.quantity class="form-control" %}
+                        </div>
+
+                        {# Row 4: Amazon Order Id and Shipping Label URL #}
+                        <div class="col-md-6">
+                            <label class="form-label">Amazon Order Id</label>
+                            {% render_field form.amazon_order_id class="form-control" %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Shipping Label URL</label>
+                            {% render_field form.shipping_label_url class="form-control" %}
+                        </div>
+
+                        {# Row 5: Expected Delivery Date and Tracker Id #}
+                        <div class="col-md-6">
+                            <label class="form-label">Expected Delivery Date</label>
+                            {% render_field form.expected_delivery_date class="form-control" %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tracker Id</label>
+                            {% render_field form.tracker_id class="form-control" %}
+                        </div>
+
+                        {# Row 6: Notes (Full Width) #}
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            {% render_field form.notes class="form-control" %}
+                        </div>
+
+                        {# Action Buttons #}
+                        <div class="col-12 text-end mt-4">
+                            <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
+                            <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</button>
+                        </div>
+
+                    </div>
+                </form>
                 
-                {# Row 3: Product Name (Full Width) #}
-                <div class="col-12">
-                    <label class="form-label visually-hidden">Product Name</label>
-                    <input type="text" class="form-control" placeholder="Product Name">
-                </div>
-
-                {# Row 4: Supplier Order Id and Quantity #}
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Supplier Order Id</label>
-                    <input type="text" class="form-control" placeholder="Supplier Order Id">
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Tracker Id</label>
-                    <input type="text" class="form-control" placeholder="Tracker Id">
-                </div>
-
-                 {# Row 5: Expected Delivery Date and Quantity#}
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Expected Delivery Date</label>
-                    <input type="date" class="form-control" placeholder="mm/dd/yyyy">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Quantity</label>
-                    <input type="number" class="form-control" placeholder="Quantity">
-                </div>
-
-                {# Row 6: Amazon Order Id and Shipping Link (URL Input) #}
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Amazon Order Id</label>
-                    <input type="text" class="form-control" placeholder="Amazon Order Id">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label visually-hidden">Shipping Label Link</label>
-                    <input type="url" class="form-control" placeholder="Paste Shipping Label URL Here">
-                </div>
+            </div> <!-- End Collapsible Form -->
+        {% endif %} <!-- End 'can_create_or_edit' permission check -->
 
 
-                {# Row 7: Notes (Full Width) #}
-                <div class="col-12">
-                    <label class="form-label visually-hidden">Notes</label>
-                    <textarea class="form-control" placeholder="Notes" rows="3"></textarea>
-                </div>
+        <!-- 
+          PERMISSION CHECK 2:
+          Only show the List View to users who have permission
+          (Super Admin, Warehouse Admin, Warehouse Manager)
+        -->
+        {% if can_view_list %}
+            
+            <!-- Order Fulfillment List Table -->
+            <h5 class="mt-5 text-secondary">Existing Orders</h5>
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    
+                    <!-- Search Bar -->
+                    <form method="GET" action="{% url 'order_fulfillment' %}" class="d-flex justify-content-end mb-3">
+                        <div class="input-group" style="max-width: 300px;">
+                            <input type="text" class="form-control" placeholder="Search orders..." name="q" value="{{ query }}">
+                            <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                        </div>
+                    </form>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">SL</th>
+                                    <th scope="col">Store</th>
+                                    <th scope="col">ASIN/UPC-Code</th>
+                                    <th scope="col">Code-Type</th>
+                                    <th scope="col">Team-Code</th>
+                                    <th scope="col">Product-Name</th>
+                                    <th scope="col">Supplier-Order-Id</th>
+                                    <th scope="col">Quantity</th>
+                                    <th scope="col">Amazon-Order-Id</th>
+                                    <th scope="col">Shipping-Label-URL</th>
+                                    <th scope="col">Expected-Delivery-Date</th>
+                                    <th scope="col">Tracker-Id</th>
+                                    <th scope="col">Notes</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ order.store.store_name|default:"N/A" }}</td>
+                                    <td>{{ order.product.code|default:"N/A" }}</td>
+                                    <td>{{ order.code_type|default:"--" }}</td>
+                                    <td>{{ order.team_code|default:"--" }}</td>
+                                    <td style="min-width: 200px;">{{ order.product.product_name|default:"N/A" }}</td>
+                                    <td>{{ order.supplier_order_id|default:"--" }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>{{ order.amazon_order_id|default:"--" }}</td>
+                                    <td>
+                                        {% if order.shipping_label_url %}
+                                            <a href="{{ order.shipping_label_url }}" target="_blank">View Link</a>
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.expected_delivery_date|date:"Y-m-d" }}</td>
+                                    <td>{{ order.tracker_id|default:"--" }}</td>
+                                    <td style="min-width: 150px;">{{ order.notes|default:"--" }}</td>
+                                    
+                                    <!-- === PERMISSION: ACTION BUTTONS (FIXED) === -->
+                                    <td style="min-width: 150px;">
+                                        {% with active_role_name=request.active_assignment.role.name|default:'' %}
+                                            
+                                            {# 1. Show "Edit" button for Admins #}
+                                            {% if active_role_name == 'super_admin' or active_role_name == 'warehouse_admin' %}
+                                                <a href="{% url 'order_fulfillment_update' order.id %}" class="btn btn-sm btn-outline-primary mb-1 w-100">Edit</a>
+                                            {% endif %}
+                                
+                                            {# 2. Show Action Buttons for Admins AND Warehouse Manager #}
+                                            {% if active_role_name == 'super_admin' or active_role_name == 'warehouse_admin' or active_role_name == 'warehouse_manager' %}
+                                                <a href="{% url 'order_fulfillment_action' order.id 'dtw' %}" 
+                                                   class="btn btn-sm btn-success mb-1 w-100"
+                                                   onclick="return confirm('Mark this order as DELIVERED TO WAREHOUSE?')">
+                                                   Delivered To WAREHOUSE
+                                                </a>
+                                                <a href="{% url 'order_fulfillment_action' order.id 'ofs' %}" 
+                                                   class="btn btn-sm btn-danger w-100"
+                                                   onclick="return confirm('Mark this order as OUT OF STOCK?')">
+                                                   Out Of Stock
+                                                </a>
+                                            {% endif %}
 
-                {# Action Buttons #}
-                <div class="col-12 text-end">
-                    <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i>SAVE</button>
-                    <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i>CLEAR</button>
-                </div>
+                                            {# 3. For Store Manager (who can see the list but not act) - show nothing #}
+                                            {% if active_role_name == 'store_manager' %}
+                                                <span class="text-muted small">--</span>
+                                            {% endif %}
+                                            
+                                        {% endwith %}
+                                    </td>
+                                    <!-- === END ACTION BUTTONS === -->
 
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="14" class="text-center">No orders found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div> <!-- end table-responsive -->
+
+                </div>
             </div>
-        </form>
-        </div>
+
+        {% endif %} <!-- End 'can_view_list' permission check -->
+
+    </div>
 {% endblock main_content %}

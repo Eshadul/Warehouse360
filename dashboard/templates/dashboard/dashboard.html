@@ -114,11 +114,12 @@
         <hr>
         
         <!-- === PERMISSION CHECKS UPDATED === -->
-
+        {% with active_role_name=request.active_assignment.role.name|default:'' %}
+        
         <small class="text-secondary fw-bold">PRODUCT AND INVENTORY</small>
         
         {# --- ASIN/UPC (All roles *except* Warehouse Manager) --- #}
-        {% if user.primary_role != 'warehouse_manager' %}
+        {% if active_role_name != 'warehouse_manager' or user.primary_role == 'super_admin' %}
             <a href="{% url 'asin_upc' %}" class="nav-link"><i class="bi bi-upc-scan me-2"></i> ASIN/UPC</a>
         {% endif %}
 
@@ -129,39 +130,58 @@
         <small class="text-secondary fw-bold">STORE MANAGEMENT</small>
         
         {# --- STORE (All roles *except* Warehouse Manager) --- #}
-        {% if user.primary_role != 'warehouse_manager' %}
+        {% if active_role_name != 'warehouse_manager' or user.primary_role == 'super_admin' %}
             <a href="{% url 'store_management' %}" class="nav-link"><i class="bi bi-shop me-2"></i> Store</a>
         {% endif %}
 
         <hr>
         
         {# --- USER (Super Admin & Warehouse Admin ONLY) --- #}
-        {% if user.primary_role == 'super_admin' or user.primary_role == 'warehouse_admin' %}
+        {% if active_role_name == 'super_admin' or active_role_name == 'warehouse_admin' or user.primary_role == 'super_admin' %}
             <small class="text-secondary fw-bold">USER</small>
             <a href="{% url 'create_user' %}" class="nav-link"><i class="bi bi-person-plus me-2"></i> Create User</a>
             <hr>
         {% endif %}
         
         {# --- WAREHOUSES (Super Admin ONLY) --- #}
-        {% if user.primary_role == 'super_admin' %}
+        {% if active_role_name == 'super_admin' or user.primary_role == 'super_admin' %}
             <small class="text-secondary fw-bold">WAREHOUSES</small>
             <a href="{% url 'create_warehouse' %}" class="nav-link"><i class="bi bi-building-add me-2"></i> Create Warehouse</a>
         {% endif %}
+        
+        {% endwith %}
         
     </div>
 
     <!-- FIXED TOP HEADER BAR -->
     <div class="top-header">
-        <h7 class="flex-grow-1" style="margin-left: 0; color: #333; font-weight: 500;">Current Warehouse : <strong>Jake</strong></h7> 
+        
+        <!-- === HEADER TEXT UPDATED === -->
+        <h7 class="flex-grow-1" style="margin-left: 230px; color: #333; font-weight: 500;">
+            {% if request.active_assignment %}
+                <!-- Show the active Warehouse and Role -->
+                Current Role: <strong>{{ request.active_assignment.role.get_name_display }}</strong> 
+                at <strong>{{ request.active_assignment.warehouse.name|default:"All Warehouses" }}</strong>
+            {% elif user.primary_role == 'super_admin' %}
+                <!-- Super Admin fallback -->
+                Current Role: <strong>Super Admin</strong> (System-Wide)
+            {% else %}
+                Current Warehouse: <strong>Jake</strong> <!-- Default fallback -->
+            {% endif %}
+        </h7> 
 
         <div class="d-flex align-items-center user-card-header"> 
             <div class="dropdown">
                 <button class="btn bg-transparent dropdown-toggle p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle me-2 fs-5"></i>
                     {{ user.username }} <br>
+                    <!-- Show the user's primary (default) role -->
                     <small class="text-secondary">{{ user.get_primary_role_display }}</small>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
+                    <!-- ADDED: Link to change active role -->
+                    <li><a class="dropdown-item" href="{% url 'select_role' %}"><i class="bi bi-arrow-repeat me-2"></i>Change Active Role</a></li>
+                    <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                 </ul>
             </div>
@@ -172,46 +192,66 @@
 
     <!-- Main Content -->
     <div class="content">
+        <!-- Add Message display here -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
         {% block page_title %}
             <h4>Dashboard</h4>
         {% endblock page_title %}
         
+        <!-- === MAIN CONTENT BLOCK (CARD NUMBERS FIXED) === -->
         {% block main_content %}
             <div class="row g-3">
                 
+                <!-- 1. Delivered to Warehouse (NEW CARD) -->
                 <div class="col-md-3">
                     <a href="{% url 'delivered_to_warehouse' %}" class="card-box bg-success bg-opacity-25 d-block">
                         <i class="bi bi-box-arrow-in-down fs-3 text-success"></i>
                         <h6 class="mt-2">Delivered to Warehouse</h6>
-                        <h4>10</h4>
+                        <!-- MODIFIED: Use dynamic count -->
+                        <h4>{{ delivered_count }}</h4>
                     </a>
                 </div>
 
+                <!-- 2. Out of Stock (NEW CARD) -->
                 <div class="col-md-3">
                     <a href="{% url 'out_of_stock' %}" class="card-box bg-danger bg-opacity-25 d-block">
                         <i class="bi bi-x-octagon fs-3 text-danger"></i>
                         <h6 class="mt-2">Out of Stock</h6>
-                        <h4>0</h4>
+                        <!-- MODIFIED: Use dynamic count -->
+                        <h4>{{ out_of_stock_count }}</h4>
                     </a>
                 </div>
                 
+                <!-- 3. Ready to Shipment (Existing) -->
                 <div class="col-md-3">
                     <a href="{% url 'ready_to_ship' %}" class="card-box bg-info bg-opacity-25 d-block">
                         <i class="bi bi-truck fs-3 text-info"></i>
                         <h6 class="mt-2">Ready To Shipment</h6>
-                        <h4>17</h4>
+                        <!-- MODIFIED: Use dynamic count -->
+                        <h4>{{ ready_to_ship_count }}</h4>
                     </a>
                 </div>
 
+                <!-- 4. Total Shipment (Existing) -->
                 <div class="col-md-3">
                     <a href="{% url 'total_shipment' %}" class="card-box bg-primary bg-opacity-25 d-block">
                         <i class="bi bi-truck fs-3 text-primary"></i>
                         <h6 class="mt-2">Total Shipment</h6>
-                        <h4>22</h4>
+                        <!-- MODIFIED: Use dynamic count -->
+                        <h4>{{ total_shipment_count }}</h4>
                     </a>
                 </div>
             </div>
         {% endblock main_content %}
+        <!-- === END MAIN CONTENT BLOCK === -->
 
         <div class="footer">
             Design and Develop by <strong>Shawon</strong>
