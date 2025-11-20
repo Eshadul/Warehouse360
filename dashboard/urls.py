@@ -45,4 +45,12 @@ urlpatterns = [
     path('out-of-stock/', views.out_of_stock_view, name='out_of_stock'),
     path('ready-to-ship/', views.ready_to_ship_view, name='ready_to_ship'),
     path('total-shipment/', views.total_shipment_view, name='total_shipment'),
+
+    # delete button---
+    path('user/delete/<int:pk>/', views.delete_user_view, name='user_delete'),
+    path('store/delete/<int:pk>/', views.delete_store_view, name='store_delete'),
+    path('warehouse/delete/<int:pk>/', views.delete_warehouse_view, name='warehouse_delete'),
+
+    # store name
+    path('ajax/load-stores/', views.load_stores_ajax, name='ajax_load_stores'),
 ]

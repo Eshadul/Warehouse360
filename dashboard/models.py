@@ -56,7 +56,7 @@ class User(AbstractUser):
 
     full_name = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
-    
+
     warehouses = models.ManyToManyField(
         Warehouse, 
         through='UserWarehouseRole', 
@@ -66,16 +66,23 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+# models.py
+
 class UserWarehouseRole(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
+    
+    # --- NEW FIELD ---
+    store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True, blank=True) 
+    # It is null=True because Warehouse Admins don't belong to a single store.
 
     class Meta:
-        unique_together = ('user', 'warehouse', 'role') 
+        unique_together = ('user', 'warehouse', 'role', 'store') # Update uniqueness if needed
 
     def __str__(self):
-        return f"{self.user.username} - {self.warehouse.name} ({self.role.name})"
+        store_name = f" - {self.store.store_name}" if self.store else ""
+        return f"{self.user.username} - {self.warehouse.name}{store_name} ({self.role.name})"
 
 
 # ---------------------------------
@@ -96,15 +103,14 @@ class Product(models.Model):
 
 class OrderFulfillment(models.Model):
     
-    # --- THIS IS THE CHANGE ---
+    
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('delivered', 'Delivered to Warehouse'),
         ('out_of_stock', 'Out of Stock'),
         ('ready_to_ship', 'Ready to Ship'),
-        ('completed', 'Completed'), # <-- NEW STATUS ADDED
+        ('completed', 'Completed'),
     ]
-    # --- END CHANGE ---
 
     store = models.ForeignKey(Store, on_delete=models.SET_NULL, null=True)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True) 

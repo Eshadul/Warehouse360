@@ -8,20 +8,26 @@
         
         <!-- Toggle Header -->
         <div class="d-flex align-items-center" 
+             {% if can_create_store %}
              data-bs-toggle="collapse" 
              data-bs-target="#storeFormCollapse" 
              aria-expanded="true" 
              aria-controls="storeFormCollapse" 
-             style="cursor: pointer;">
+             style="cursor: pointer;"
+             {% endif %}>
             
+            {% if can_create_store %}
             <i class="bi bi-chevron-up me-2 fs-5 text-secondary"></i>
+            {% endif %}
             <h4 style="margin-left: 10px; font-weight: bold; color: #333;">{{ page_title }}</h4>
         </div>
         
-        <!-- CREATE NEW STORE Button (This just reloads the create page) -->
+        <!-- CREATE NEW STORE Button (Only for Admins) -->
+        {% if can_create_store %}
         <div class="flex-grow-1 text-center"> 
              <a href="{% url 'store_management' %}" class="btn btn-sm btn-warning text-decoration-none fw-bold">CREATE NEW STORE</a>
         </div>
+        {% endif %}
     </div>
     <hr class="mt-0 mb-3"> 
 {% endblock page_title %}
@@ -29,65 +35,72 @@
 {% block main_content %}
     <div class="container-fluid py-4">
         
-        <!-- Collapsible Form Section -->
+        <!-- === CREATE/EDIT FORM (HIDDEN FOR STORE MANAGERS) === -->
+        {% if can_create_store %}
         <div id="storeFormCollapse" class="collapse show"> 
             
             <form method="POST">
                 {% csrf_token %}
-                <div class="row g-3">
+                <div class="row g-3 mb-5">
                     
-                    {# Row 1: Warehouse Name and Store Name #}
+                    <!-- Warehouse Field (Auto-set for Warehouse Admin, Selectable for Super Admin) -->
                     <div class="col-md-6">
                         <label class="form-label">Warehouse Name</label>
-                        {% render_field form.warehouse class="form-select" %}
-                        {% if form.warehouse.errors %}
-                            <div class="text-danger small">{{ form.warehouse.errors|first }}</div>
+                        {% if user.primary_role == 'warehouse_admin' or active_assignment.role.name == 'warehouse_admin' %}
+                            <!-- Read-only for Warehouse Admin -->
+                            <input type="text" class="form-control" value="{{ active_assignment.warehouse.name }}" readonly>
+                            <!-- Hidden input to actually submit the value if needed, though view handles logic -->
+                        {% else %}
+                            {% render_field form.warehouse class="form-select" %}
+                            {% if form.warehouse.errors %}<div class="text-danger small">{{ form.warehouse.errors|first }}</div>{% endif %}
                         {% endif %}
                     </div>
+
                     <div class="col-md-6">
                         <label class="form-label">Store Name</label>
                         {% render_field form.store_name class="form-control" placeholder="e.g., Amazon US" %}
+                        {% if form.store_name.errors %}<div class="text-danger small">{{ form.store_name.errors|first }}</div>{% endif %}
                     </div>
 
-                    {# Row 2: Store Type and Status #}
                     <div class="col-md-6">
                         <label class="form-label">Store Type</label>
                         {% render_field form.store_type class="form-control" placeholder="e.g., Amazon" %}
                     </div>
+                    
                     <div class="col-md-6">
                         <label class="form-label">Status</label>
-                        <!-- This will now render as a dropdown thanks to the forms.py fix -->
                         {% render_field form.is_active class="form-select" %}
                     </div>
-                    
-                    {# Action Buttons #}
+
                     <div class="col-12 text-end mt-4">
-                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
-                        <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</button>
+                        <button type="submit" class="btn btn-warning me-2">
+                            <i class="bi bi-save me-2"></i> SAVE
+                        </button>
+                        <a href="{% url 'store_management' %}" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</a>
                     </div>
 
                 </div>
             </form>
             
-        </div>
-        
-        <!-- Store List Table (as requested) -->
-        <h5 class="mt-5 text-secondary">Existing Stores</h5>
+        </div> 
+        {% endif %}
+        <!-- === END FORM SECTION === -->
+
+
+        <!-- Store List Table -->
+        <h5 class="text-secondary {% if not can_create_store %}mt-0{% else %}mt-4{% endif %}">Existing Stores</h5>
         <div class="card shadow-sm mt-3">
             <div class="card-body">
                 
-                <!-- === UPDATED SEARCH BAR PLACEHOLDER === -->
+                <!-- Search Bar -->
                 <form method="GET" action="{% url 'store_management' %}" class="d-flex justify-content-end mb-3">
                     <div class="input-group" style="max-width: 300px;">
-                        <input type="text" class="form-control" 
-                               placeholder="Search name, type, status, or date..." 
-                               name="q" value="{{ query }}">
+                        <input type="text" class="form-control" placeholder="Search name, type, status..." name="q" value="{{ query }}">
                         <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
                     </div>
                 </form>
-                <!-- === END SEARCH BAR === -->
                 
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th scope="col">SL</th>
@@ -103,8 +116,8 @@
                         {% for store in stores %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td>{{ store.warehouse.name|default:"N/A" }}</td>
-                            <td>{{ store.store_name }}</td>
+                            <td>{{ store.warehouse.name }}</td>
+                            <td class="fw-bold">{{ store.store_name }}</td>
                             <td>{{ store.store_type }}</td>
                             <td>
                                 {% if store.is_active %}
@@ -115,18 +128,29 @@
                             </td>
                             <td>{{ store.created_at|date:"Y-m-d H:i" }}</td>
                             <td>
-                                <!-- 
-                                  PERMISSION FIX: 
-                                  We now check the *active session role*
-                                -->
-                                {% if request.active_assignment.role.name == 'super_admin' or request.active_assignment.role.name == 'warehouse_admin' or user.primary_role == 'super_admin' %}
-                                    <a href="{% url 'store_update' store.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <!-- ONLY SHOW ACTIONS TO ADMINS -->
+                                {% if can_create_store %}
+                                    <a href="{% url 'store_update' store.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'store_delete' store.pk %}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       onclick="return confirm('Are you sure you want to delete {{ store.store_name }}?');">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">View Only</span>
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">No stores found.</td>
+                            <td colspan="7" class="text-center py-4">
+                                <p class="text-muted mb-0">No stores found.</p>
+                                {% if not can_create_store and active_assignment.role.name == 'store_manager' %}
+                                    <small class="text-danger">You are not assigned to any active store.</small>
+                                {% endif %}
+                            </td> 
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -3,25 +3,23 @@
 {% load widget_tweaks %}
 
 {% block page_title %}
-    <!-- Header with Collapse Toggle -->
     <div class="d-flex justify-content-between align-items-center w-100">
         
-        <!-- Toggle Header -->
         <div class="d-flex align-items-center" 
+             style="cursor: pointer;" 
              data-bs-toggle="collapse" 
              data-bs-target="#orderFormCollapse" 
              aria-expanded="true" 
-             aria-controls="orderFormCollapse" 
-             style="cursor: pointer;">
-            
+             aria-controls="orderFormCollapse">
             <i class="bi bi-chevron-up me-2 fs-5 text-secondary"></i>
             <h4 style="margin-left: 10px; font-weight: bold; color: #333;">{{ page_title }}</h4>
         </div>
         
-        <!-- CREATE NEW ORDER Button (Reloads create page) -->
+        {% if can_create_or_edit %}
         <div class="flex-grow-1 text-center"> 
              <a href="{% url 'order_fulfillment' %}" class="btn btn-sm btn-warning text-decoration-none fw-bold">CREATE NEW ORDER</a>
         </div>
+        {% endif %}
     </div>
     <hr class="mt-0 mb-3"> 
 {% endblock page_title %}
@@ -29,100 +27,87 @@
 {% block main_content %}
     <div class="container-fluid py-4">
         
-        <!-- 
-          PERMISSION CHECK 1:
-          Only show the Create/Edit Form to users who have permission
-          (Super Admin, Warehouse Admin, Store Manager)
-        -->
         {% if can_create_or_edit %}
-            <div id="orderFormCollapse" class="collapse show"> 
-                
-                <form method="POST">
-                    {% csrf_token %}
-                    <div class="row g-3">
-                        
-                        {# Row 1: Store and ASIN/UPC Code #}
-                        <div class="col-md-6">
-                            <label class="form-label">Store</label>
-                            {% render_field form.store class="form-select" %}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">ASIN/UPC Code (Product)</label>
-                            {% render_field form.product class="form-select" %}
-                        </div>
+        <div id="orderFormCollapse" class="collapse show"> 
+            <div class="card shadow-sm mb-5">
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Store</label>
+                                {% render_field form.store class="form-select" %}
+                                {% if form.store.errors %}<div class="text-danger small">{{ form.store.errors|first }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">ASIN/UPC Code (Product)</label>
+                                {% render_field form.product class="form-select" %}
+                            </div>
 
-                        {# Row 2: Code Type and Team Code #}
-                        <div class="col-md-6">
-                            <label class="form-label">Code Type</label>
-                            {% render_field form.code_type class="form-control" %}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Team Code</label>
-                            {% render_field form.team_code class="form-control" %}
-                        </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Code Type</label>
+                                {% render_field form.code_type class="form-control" placeholder="Code Type" %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Team Code</label>
+                                {% render_field form.team_code class="form-control" placeholder="Team Code" %}
+                            </div>
 
-                        {# Row 3: Supplier Order Id and Quantity #}
-                        <div class="col-md-6">
-                            <label class="form-label">Supplier Order Id</label>
-                            {% render_field form.supplier_order_id class="form-control" %}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Quantity</label>
-                            {% render_field form.quantity class="form-control" %}
-                        </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Supplier Order Id</label>
+                                {% render_field form.supplier_order_id class="form-control" placeholder="Supplier Order Id" %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Quantity</label>
+                                {% render_field form.quantity class="form-control" placeholder="1" %}
+                            </div>
 
-                        {# Row 4: Amazon Order Id and Shipping Label URL #}
-                        <div class="col-md-6">
-                            <label class="form-label">Amazon Order Id</label>
-                            {% render_field form.amazon_order_id class="form-control" %}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Shipping Label URL</label>
-                            {% render_field form.shipping_label_url class="form-control" %}
-                        </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Amazon Order Id</label>
+                                {% render_field form.amazon_order_id class="form-control" placeholder="Amazon Order Id" %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Shipping Label URL</label>
+                                {% render_field form.shipping_label_url class="form-control" placeholder="Paste Shipping Label URL Here" %}
+                            </div>
 
-                        {# Row 5: Expected Delivery Date and Tracker Id #}
-                        <div class="col-md-6">
-                            <label class="form-label">Expected Delivery Date</label>
-                            {% render_field form.expected_delivery_date class="form-control" %}
+                            <div class="col-md-6">
+                                <label class="form-label">Expected Delivery Date</label>
+                                {% render_field form.expected_delivery_date class="form-control" type="date" %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tracker Id</label>
+                                {% render_field form.tracker_id class="form-control" placeholder="Tracker Id" %}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Notes</label>
+                                {% render_field form.notes class="form-control" rows="3" %}
+                            </div>
+
+                            <div class="col-12 text-end mt-4">
+                                <button type="submit" class="btn btn-warning fw-bold px-4">
+                                    <i class="bi bi-save me-2"></i> SAVE
+                                </button>
+                                <a href="{% url 'order_fulfillment' %}" class="btn btn-secondary ms-2">
+                                    <i class="bi bi-x me-1"></i> CLEAR
+                                </a>
+                            </div>
+
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Tracker Id</label>
-                            {% render_field form.tracker_id class="form-control" %}
-                        </div>
-
-                        {# Row 6: Notes (Full Width) #}
-                        <div class="col-12">
-                            <label class="form-label">Notes</label>
-                            {% render_field form.notes class="form-control" %}
-                        </div>
-
-                        {# Action Buttons #}
-                        <div class="col-12 text-end mt-4">
-                            <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
-                            <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</button>
-                        </div>
-
-                    </div>
-                </form>
-                
-            </div> <!-- End Collapsible Form -->
-        {% endif %} <!-- End 'can_create_or_edit' permission check -->
-
-
-        <!-- 
-          PERMISSION CHECK 2:
-          Only show the List View to users who have permission
-          (Super Admin, Warehouse Admin, Warehouse Manager)
-        -->
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         {% if can_view_list %}
             
-            <!-- Order Fulfillment List Table -->
             <h5 class="mt-5 text-secondary">Existing Orders</h5>
             <div class="card shadow-sm mt-3">
                 <div class="card-body">
                     
-                    <!-- Search Bar -->
                     <form method="GET" action="{% url 'order_fulfillment' %}" class="d-flex justify-content-end mb-3">
                         <div class="input-group" style="max-width: 300px;">
                             <input type="text" class="form-control" placeholder="Search orders..." name="q" value="{{ query }}">
@@ -131,37 +116,39 @@
                     </form>
                     
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                        <table class="table table-hover align-middle" style="font-size: 0.9rem;">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col">SL</th>
-                                    <th scope="col">Store</th>
-                                    <th scope="col">ASIN/UPC-Code</th>
-                                    <th scope="col">Code-Type</th>
-                                    <th scope="col">Team-Code</th>
-                                    <th scope="col">Product-Name</th>
-                                    <th scope="col">Supplier-Order-Id</th>
-                                    <th scope="col">Quantity</th>
-                                    <th scope="col">Amazon-Order-Id</th>
-                                    <th scope="col">Shipping-Label-URL</th>
-                                    <th scope="col">Expected-Delivery-Date</th>
-                                    <th scope="col">Tracker-Id</th>
-                                    <th scope="col">Notes</th>
-                                    <th scope="col">Actions</th>
+                                    <th>SL</th>
+                                    <th>Store</th>
+                                    <th>ASIN/UPC Code</th>
+                                    <th>Code-Type</th>
+                                    <th>Team-Code</th>
+                                    <th>Product-Name</th>
+                                    <th>Supplier-Order-Id</th>
+                                    <th>Quantity</th>
+                                    <th>Amazon-Order-Id</th>
+                                    <th>Shipping-Label-URL</th>
+                                    <th>Expected-Delivery-Date</th>
+                                    <th>Tracker-Id</th>
+                                    <th>Notes</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for order in orders %}
                                 <tr>
                                     <td>{{ forloop.counter }}</td>
-                                    <td>{{ order.store.store_name|default:"N/A" }}</td>
-                                    <td>{{ order.product.code|default:"N/A" }}</td>
-                                    <td>{{ order.code_type|default:"--" }}</td>
-                                    <td>{{ order.team_code|default:"--" }}</td>
-                                    <td style="min-width: 200px;">{{ order.product.product_name|default:"N/A" }}</td>
-                                    <td>{{ order.supplier_order_id|default:"--" }}</td>
+                                    <td class="fw-bold">{{ order.store.store_name }}</td>
+                                    <td>{{ order.product.code }}</td>
+                                    <td>{{ order.code_type }}</td>
+                                    <td>{{ order.team_code }}</td>
+                                    <td style="min-width: 150px;">
+                                        {{ order.product.product_name|truncatechars:30 }}
+                                    </td>
+                                    <td>{{ order.supplier_order_id }}</td>
                                     <td>{{ order.quantity }}</td>
-                                    <td>{{ order.amazon_order_id|default:"--" }}</td>
+                                    <td>{{ order.amazon_order_id }}</td>
                                     <td>
                                         {% if order.shipping_label_url %}
                                             <a href="{{ order.shipping_label_url }}" target="_blank">View Link</a>
@@ -170,55 +157,41 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ order.expected_delivery_date|date:"Y-m-d" }}</td>
-                                    <td>{{ order.tracker_id|default:"--" }}</td>
-                                    <td style="min-width: 150px;">{{ order.notes|default:"--" }}</td>
+                                    <td>{{ order.tracker_id }}</td>
+                                    <td>{{ order.notes|default:"--" }}</td>
                                     
-                                    <!-- === PERMISSION: ACTION BUTTONS (FIXED) === -->
-                                    <td style="min-width: 150px;">
-                                        {% with active_role_name=request.active_assignment.role.name|default:'' %}
+                                    <td>
+                                        {% if can_create_or_edit %}
+                                            <a href="{% url 'order_fulfillment_update' order.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        {% endif %}
+                                        
+                                        {% if user.primary_role == 'warehouse_manager' or request.active_assignment.role.name == 'warehouse_manager' or request.active_assignment.role.name == 'warehouse_admin' or user.primary_role == 'super_admin' %}
                                             
-                                            {# 1. Show "Edit" button for Admins #}
-                                            {% if active_role_name == 'super_admin' or active_role_name == 'warehouse_admin' %}
-                                                <a href="{% url 'order_fulfillment_update' order.id %}" class="btn btn-sm btn-outline-primary mb-1 w-100">Edit</a>
-                                            {% endif %}
-                                
-                                            {# 2. Show Action Buttons for Admins AND Warehouse Manager #}
-                                            {% if active_role_name == 'super_admin' or active_role_name == 'warehouse_admin' or active_role_name == 'warehouse_manager' %}
-                                                <a href="{% url 'order_fulfillment_action' order.id 'dtw' %}" 
-                                                   class="btn btn-sm btn-success mb-1 w-100"
-                                                   onclick="return confirm('Mark this order as DELIVERED TO WAREHOUSE?')">
-                                                   Delivered To WAREHOUSE
-                                                </a>
-                                                <a href="{% url 'order_fulfillment_action' order.id 'ofs' %}" 
-                                                   class="btn btn-sm btn-danger w-100"
-                                                   onclick="return confirm('Mark this order as OUT OF STOCK?')">
-                                                   Out Of Stock
-                                                </a>
+                                            {% if order.status == 'pending' %}
+                                                <div class="d-flex flex-column gap-1 mt-1">
+                                                    <a href="{% url 'order_fulfillment_action' order.id 'dtw' %}" class="btn btn-sm btn-success" style="font-size: 0.7rem;">Delivered</a>
+                                                    <a href="{% url 'order_fulfillment_action' order.id 'ofs' %}" class="btn btn-sm btn-danger" style="font-size: 0.7rem;">Out of Stock</a>
+                                                </div>
                                             {% endif %}
 
-                                            {# 3. For Store Manager (who can see the list but not act) - show nothing #}
-                                            {% if active_role_name == 'store_manager' %}
-                                                <span class="text-muted small">--</span>
-                                            {% endif %}
-                                            
-                                        {% endwith %}
+                                        {% endif %}
+                                        
+                                        {% if not can_create_or_edit and not user.primary_role == 'warehouse_manager' %}
+                                             --
+                                        {% endif %}
                                     </td>
-                                    <!-- === END ACTION BUTTONS === -->
-
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="14" class="text-center">No orders found.</td>
+                                    <td colspan="14" class="text-center py-4 text-muted">No orders found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
-                    </div> <!-- end table-responsive -->
-
-                </div>
+                    </div> </div>
             </div>
 
-        {% endif %} <!-- End 'can_view_list' permission check -->
+        {% endif %}
 
     </div>
 {% endblock main_content %}

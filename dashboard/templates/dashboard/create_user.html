@@ -18,7 +18,7 @@
             <h4 style="margin-left: 10px; font-weight: bold; color: #333;">{{ page_title }}</h4>
         </div>
         
-        <!-- CREATE NEW USER Button (This just reloads the create page) -->
+        <!-- CREATE NEW USER Button (Reloads page) -->
         <div class="flex-grow-1 text-center"> 
              <a href="{% url 'create_user' %}" class="btn btn-sm btn-warning text-decoration-none fw-bold">CREATE NEW USER</a>
         </div>
@@ -33,7 +33,7 @@
         <div id="userFormCollapse" class="collapse show"> 
             
             <!-- === MAIN USER FORM (CREATE/EDIT) === -->
-            <form method="POST">
+            <form method="POST" id="mainUserForm">
                 {% csrf_token %}
                 <div class="row g-3">
                     
@@ -61,34 +61,31 @@
                     <!-- === PASSWORD FIELDS === -->
                     <div class="col-md-6">
                         {% if form.instance.pk %}
-                            <!-- This is the UPDATE form (UserUpdateForm) -->
+                            <!-- This is the UPDATE form -->
                             <label class="form-label">New Password (Optional)</label>
                             <div class="form-text mt-0 mb-1">Leave blank to keep current password.</div>
-                            {{ form.password|add_class:"form-control" }} <!-- Renders 'password' -->
+                            {{ form.password|add_class:"form-control" }}
                             {% if form.password.errors %}<div class="text-danger small">{{ form.password.errors|first }}</div>{% endif %}
                         {% else %}
-                            <!-- This is the CREATE form (UserCreateForm) -->
+                            <!-- This is the CREATE form -->
                             <label class="form-label">Password</label>
-                            {{ form.password1|add_class:"form-control" }} <!-- Renders 'password1' -->
+                            {{ form.password1|add_class:"form-control" }}
                             {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors|first }}</div>{% endif %}
                         {% endif %}
                     </div>
                     <div class="col-md-6">
                         {% if form.instance.pk %}
-                            <!-- This is the UPDATE form (UserUpdateForm) -->
                             <label class="form-label">Confirm New Password</label>
                         {% else %}
-                            <!-- This is the CREATE form (UserCreateForm) -->
                             <label class="form-label">Confirm Password</label>
                         {% endif %}
                         
-                        <!-- 'password2' is the correct name for both forms -->
                         {{ form.password2|add_class:"form-control" }}
                         {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors|first }}</div>{% endif %}
                     </div>
                     <!-- === END PASSWORD FIELDS === -->
                     
-                    {# Row 4: Primary Role and Active Status (Active only shows on Edit) #}
+                    {# Row 4: Primary Role and Active Status #}
                     <div class="col-md-6">
                         <label class="form-label">Primary Role</label>
                         {% render_field form.primary_role class="form-select" %}
@@ -102,10 +99,51 @@
                     </div>
                     {% endif %}
                     
+                    <!-- ===================================================== -->
+                    <!-- === NEW SECTION: INITIAL ASSIGNMENT (CREATE ONLY) === -->
+                    <!-- ===================================================== -->
+                    {% if not user_to_edit %}
+                    <div class="col-12">
+                        <hr class="mt-4 mb-3">
+                        <h5 class="text-secondary mb-3">Initial Assignment</h5>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Assign Warehouse</label>
+                        <!-- Added ID for JS -->
+                        {% render_field assignment_form.warehouse class="form-select" id="id_warehouse" %}
+                        {% if assignment_form.warehouse.errors %}
+                            <div class="text-danger small">{{ assignment_form.warehouse.errors|first }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Assign Role</label>
+                        <!-- Added ID for JS -->
+                        {% render_field assignment_form.role class="form-select" id="id_role" %}
+                        {% if assignment_form.role.errors %}
+                            <div class="text-danger small">{{ assignment_form.role.errors|first }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- NEW STORE FIELD (Hidden by Default) -->
+                    <div class="col-md-4" id="store_container" style="display: none;">
+                        <label class="form-label">Assign Store</label>
+                        <!-- Added ID for JS -->
+                        {% render_field assignment_form.store class="form-select" id="id_store" %}
+                        {% if assignment_form.store.errors %}
+                            <div class="text-danger small">{{ assignment_form.store.errors|first }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <!-- ===================================================== -->
+                    
                     {# Action Buttons for Main Form #}
                     <div class="col-12 text-end mt-4">
-                        <!-- This button name 'save_user' is checked in views.py -->
-                        <button type="submit" name="save_user" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE USER DETAILS</button>
+                        <button type="submit" name="save_user" class="btn btn-warning me-2">
+                            <i class="bi bi-save me-2"></i> 
+                            {% if user_to_edit %} SAVE USER DETAILS {% else %} CREATE USER & ASSIGN {% endif %}
+                        </button>
                         <a href="{% url 'create_user' %}" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CANCEL</a>
                     </div>
 
@@ -115,26 +153,34 @@
         </div> <!-- End of Collapsible Form Section -->
 
 
-        <!-- === NEW: ADD ASSIGNMENT FORM (Only shows on EDIT page) === -->
-        {% if user_to_edit %} <!-- user_to_edit is passed from the view if pk exists -->
+        <!-- === ADD ASSIGNMENT FORM (Only shows on EDIT page) === -->
+        {% if user_to_edit %}
         <div class="mt-5">
             <hr>
             <h5>Add New Assignment</h5>
             <p class="text-muted small">Assign this user a new role at a specific warehouse.</p>
             
-            <form method="POST">
+            <form method="POST" id="addAssignmentForm">
                 {% csrf_token %}
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label">Warehouse</label>
-                        {% render_field assignment_form.warehouse class="form-select" %}
+                        <!-- We reuse IDs because this form logic is exclusive to Edit page in JS context usually, 
+                             but to be safe, standard Django IDs work if they are the only ones visible -->
+                        {% render_field assignment_form.warehouse class="form-select" id="id_warehouse" %}
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                         <label class="form-label">Role</label>
-                        {% render_field assignment_form.role class="form-select" %}
+                        {% render_field assignment_form.role class="form-select" id="id_role" %}
                     </div>
+                    
+                    <!-- Store Field for Edit Mode -->
+                    <div class="col-md-3" id="store_container" style="display: none;">
+                        <label class="form-label">Store</label>
+                        {% render_field assignment_form.store class="form-select" id="id_store" %}
+                    </div>
+
                     <div class="col-md-2">
-                        <!-- This button name 'add_assignment' is checked in views.py -->
                         <button type="submit" name="add_assignment" class="btn btn-success w-100">
                             <i class="bi bi-plus-lg"></i> Add
                         </button>
@@ -143,7 +189,7 @@
             </form>
         </div>
         {% endif %}
-        <!-- === END NEW ASSIGNMENT FORM === -->
+        <!-- === END ASSIGNMENT FORM === -->
 
 
         <!-- User List Table -->
@@ -154,7 +200,7 @@
                 <!-- Search Bar -->
                 <form method="GET" action="{% url 'create_user' %}" class="d-flex justify-content-end mb-3">
                     <div class="input-group" style="max-width: 300px;">
-                        <input type="text" class="form-control" placeholder="Search by name, username, email..." name="q" value="{{ query }}">
+                        <input type="text" class="form-control" placeholder="Search..." name="q" value="{{ query }}">
                         <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
                     </div>
                 </form>
@@ -166,9 +212,9 @@
                             <th scope="col">Username</th>
                             <th scope="col">Full Name</th>
                             <th scope="col">Email</th>
-                            <th scope="col">Phone Number</th>
-                            <th scope="col">Primary Role</th>
-                            <th scope="col">Warehouse Assignments</th>
+                            <th scope="col">Phone</th>
+                            <th scope="col">Role</th>
+                            <th scope="col">Assignments</th>
                             <th scope="col">Date Joined</th>
                             <th scope="col">Actions</th>
                         </tr>
@@ -183,18 +229,18 @@
                             <td>{{ user_obj.phone_number|default:"--" }}</td>
                             <td>{{ user_obj.get_primary_role_display }}</td>
                             <td>
-                                <!-- Loop through the user's M2M assignments -->
                                 {% for assignment in user_obj.userwarehouserole_set.all %}
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <span class="badge bg-secondary">
-                                            {{ assignment.warehouse.name }}: {{ assignment.role.get_name_display }}
+                                            {{ assignment.warehouse.name }}
+                                            {% if assignment.store %}
+                                                / {{ assignment.store.store_name }}
+                                            {% endif %}
+                                            : {{ assignment.role.get_name_display }}
                                         </span>
-                                        <!-- === NEW: REMOVE BUTTON === -->
-                                        <!-- This link points to the new delete view -->
                                         <a href="{% url 'delete_user_assignment' assignment.pk %}" 
                                            class="btn btn-sm btn-outline-danger p-0 px-1 ms-2" 
-                                           style="font-size: 0.7rem;"
-                                           onclick="return confirm('Are you sure you want to remove this assignment?')">
+                                           onclick="return confirm('Remove assignment?')">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
@@ -202,14 +248,12 @@
                                     <span class="text-muted small">No assignments</span>
                                 {% endfor %}
                             </td>
+                            <td>{{ user_obj.date_joined|date:"Y-m-d" }}</td>
                             <td>
-                                {{ user_obj.date_joined|date:"Y-m-d H:i" }}
-                            </td>
-                            <td>
-                                <!-- Permission Check for Edit Button -->
                                 {% if user.primary_role == 'super_admin' or user.primary_role == 'warehouse_admin' %}
                                     {% if user_obj.primary_role != 'super_admin' %}
                                         <a href="{% url 'user_update' user_obj.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="{% url 'user_delete' user_obj.id %}" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Delete user?');">Del</a>
                                     {% endif %}
                                 {% endif %}
                             </td>
@@ -224,4 +268,81 @@
             </div>
         </div>
     </div>
+
+    <!-- === JAVASCRIPT FOR DYNAMIC DROPDOWNS === -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            
+            // 1. FUNCTION: Toggle Store Field based on Role
+            function toggleStoreField() {
+                // Get the text of the selected option
+                var roleText = $("#id_role option:selected").text().trim().toLowerCase();
+                
+                // Check if selected role contains "store manager"
+                if (roleText.includes("store manager")) {
+                    $("#store_container").fadeIn();
+                    // Optional: Make it required if visible
+                    $("#id_store").prop('required', true);
+                } else {
+                    $("#store_container").fadeOut();
+                    $("#id_store").val(""); // Reset selection
+                    $("#id_store").prop('required', false);
+                }
+            }
+
+            // 2. FUNCTION: Fetch Stores based on Warehouse
+            function fetchStores() {
+                var url = "{% url 'ajax_load_stores' %}";  // Uses the URL pattern name
+                var warehouseId = $("#id_warehouse").val();
+
+                if (warehouseId) {
+                    $.ajax({
+                        url: url,
+                        data: {
+                            'warehouse_id': warehouseId
+                        },
+                        success: function (data) {
+                            // Save the currently selected store (if any) to preserve state on error
+                            var selectedStore = $("#id_store").val();
+                            
+                            $("#id_store").html('<option value="">---------</option>');
+                            $.each(data, function (key, value) {
+                                $("#id_store").append('<option value="' + value.id + '">' + value.store_name + '</option>');
+                            });
+
+                            // Re-select if value existed
+                            if (selectedStore) {
+                                $("#id_store").val(selectedStore);
+                            }
+                        }
+                    });
+                } else {
+                    $("#id_store").html('<option value="">---------</option>');
+                }
+            }
+
+            // EVENTS
+            
+            // A. When Role Changes -> Toggle Store Field
+            $("#id_role").change(toggleStoreField);
+            
+            // B. When Warehouse Changes -> Fetch Stores
+            $("#id_warehouse").change(fetchStores);
+
+            // C. Run on Page Load (in case of form validation error/edit mode)
+            toggleStoreField();
+            
+            // Only fetch stores on load if warehouse is selected and store is empty or we are reloading
+            if ($("#id_warehouse").val()) {
+                 // We might not want to overwrite the existing selection on edit page load
+                 // unless we want to ensure the list is fresh. 
+                 // For Create page, it's fine.
+                 // If the dropdown is empty (except placeholder), fetch.
+                 if ($("#id_store option").length <= 1) {
+                     fetchStores();
+                 }
+            }
+        });
+    </script>
 {% endblock main_content %}

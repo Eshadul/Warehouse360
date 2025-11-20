@@ -3,10 +3,8 @@
 {% load widget_tweaks %}
 
 {% block page_title %}
-    <!-- Header with Collapse Toggle -->
     <div class="d-flex justify-content-between align-items-center w-100">
         
-        <!-- Toggle Header -->
         <div class="d-flex align-items-center" 
              data-bs-toggle="collapse" 
              data-bs-target="#asinUpcFormCollapse" 
@@ -18,7 +16,6 @@
             <h4 style="margin-left: 10px; font-weight: bold; color: #333;">{{ page_title }}</h4>
         </div>
         
-        <!-- CREATE NEW ASIN/UPC Button (This just reloads the create page) -->
         <div class="flex-grow-1 text-center"> 
              <a href="{% url 'asin_upc' %}" class="btn btn-sm btn-warning text-decoration-none fw-bold">CREATE ASIN/UPC</a>
         </div>
@@ -29,62 +26,53 @@
 {% block main_content %}
     <div class="container-fluid py-4">
         
-        <!-- Collapsible Form Section -->
         <div id="asinUpcFormCollapse" class="collapse show"> 
             
-            <form method="POST">
-                {% csrf_token %}
-                <div class="row g-3">
-                    
-                    {# Row 1: Code (Full Width) #}
-                    <div class="col-12">
-                        <label class="form-label">Code (ASIN/UPC)</label>
-                        {% render_field form.code class="form-control form-control-lg" %}
-                    </div>
+            <div class="card shadow-sm mb-5">
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            
+                            {# Row 1: Code (Full Width) #}
+                            <div class="col-12">
+                                <label class="form-label">Code (ASIN/UPC)</label>
+                                {% render_field form.code class="form-control form-control-lg" %}
+                            </div>
 
-                    {# Row 2: Product Name and Minimum Price #}
-                    <div class="col-md-6">
-                        <label class="form-label">Product Name</label>
-                        {% render_field form.product_name class="form-control" %}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Minimum Price</label>
-                        {% render_field form.minimum_price class="form-control" %}
-                    </div>
+                            {# Row 2: Product Name (Full Width now that Min Price is gone) #}
+                            <div class="col-12">
+                                <label class="form-label">Product Name</label>
+                                {% render_field form.product_name class="form-control" %}
+                            </div>
 
-                    {# Row 3: Code Type (Dropdown) and Product Image Link #}
-                    <div class="col-md-6">
-                        <label class="form-label">Code Type</label>
-                        {% render_field form.code_type class="form-select" %}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Product Image Link</label>
-                        {% render_field form.product_image_link class="form-control" %}
-                    </div>
+                            {# Row 3: Code Type and Product Image Link #}
+                            <div class="col-md-6">
+                                <label class="form-label">Code Type</label>
+                                {% render_field form.code_type class="form-select" %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Product Image Link</label>
+                                {% render_field form.product_image_link class="form-control" %}
+                            </div>
 
-                    {# Action Buttons #}
-                    <div class="col-12 text-end mt-4">
-                        <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
-                        <button type="reset" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</button>
-                    </div>
+                            {# Action Buttons #}
+                            <div class="col-12 text-end mt-4">
+                                <button type="submit" class="btn btn-warning me-2"><i class="bi bi-save me-2"></i> SAVE</button>
+                                <a href="{% url 'asin_upc' %}" class="btn btn-secondary"><i class="bi bi-x me-2"></i> CLEAR</a>
+                            </div>
 
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
             
-        </div> <!-- End Collapsible Form -->
-        
-        <!-- 
-          PERMISSION CHECK:
-          The 'can_view_list' variable is sent from the view.
-        -->
-        {% if can_view_list %}
+        </div> {% if can_view_list %}
             
-            <!-- Product List Table -->
             <h5 class="mt-5 text-secondary">Existing Products</h5>
             <div class="card shadow-sm mt-3">
                 <div class="card-body">
                     
-                    <!-- Search Bar -->
                     <form method="GET" action="{% url 'asin_upc' %}" class="d-flex justify-content-end mb-3">
                         <div class="input-group" style="max-width: 300px;">
                             <input type="text" class="form-control" placeholder="Search by code or name..." name="q" value="{{ query }}">
@@ -92,16 +80,14 @@
                         </div>
                     </form>
                     
-                    <table class="table table-hover align-middle"> <!-- Added 'align-middle' for vertical centering -->
+                    <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
                                 <th scope="col">SL</th>
                                 <th scope="col">Code</th>
                                 <th scope="col">Product Name</th>
                                 <th scope="col">Code Type</th>
-                                <!-- === MODIFIED: Header Text === -->
                                 <th scope="col">Product Image</th> 
-                                <th scope="col">Minimum Price</th>
                                 <th scope="col">Created Time</th>
                                 <th scope="col">Actions</th>
                             </tr>
@@ -114,27 +100,28 @@
                                 <td style="max-width: 300px;">{{ product.product_name }}</td>
                                 <td>{{ product.get_code_type_display }}</td>
                                 <td>
-                                    <!-- === MODIFIED: Replaced <a> tag with <img> tag === -->
                                     {% if product.product_image_link %}
                                         <img src="{{ product.product_image_link }}" 
                                              alt="{{ product.product_name }}" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
-                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"> <!-- Hide image on error -->
-                                        <span style="display: none;" class="text-muted small">Invalid Link</span> <!-- Show this on error -->
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                                        <span style="display: none;" class="text-muted small">Invalid Link</span>
                                     {% else %}
                                         <span class="text-muted small">No Image</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ product.minimum_price }}</td>
                                 <td>{{ product.created_at|date:"Y-m-d H:i" }}</td>
                                 <td>
-                                    <!-- Edit button is also restricted to admins -->
-                                    <a href="{% url 'product_update' product.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    {% if user.primary_role == 'super_admin' or user.primary_role == 'warehouse_admin' or product.created_by == user %}
+                                        <a href="{% url 'product_update' product.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    {% else %}
+                                        <span class="badge bg-light text-secondary border">Read Only</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="8" class="text-center">No products found.</td>
+                                <td colspan="7" class="text-center">No products found.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -142,7 +129,7 @@
                 </div>
             </div>
 
-        {% endif %} <!-- End 'can_view_list' permission check -->
+        {% endif %}
 
     </div>
 {% endblock main_content %}
